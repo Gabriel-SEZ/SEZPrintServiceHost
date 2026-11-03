@@ -42,9 +42,16 @@ namespace SezPrintServiceHost
             {
                 try
                 {
-                    string node = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                        "nodejs", "node.exe");
+                    // Preferir runtime Node.js empacotado no próprio instalador.
+                    // Isso evita depender de uma instalação global/perfil do usuário.
+                    string node = Path.Combine(appDir, "runtime", "node.exe");
+
+                    if (!File.Exists(node))
+                    {
+                        node = Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                            "nodejs", "node.exe");
+                    }
 
                     if (!File.Exists(node))
                     {
@@ -55,7 +62,7 @@ namespace SezPrintServiceHost
 
                     if (!File.Exists(node))
                         throw new FileNotFoundException(
-                            "Node.js não encontrado. Execute novamente o instalador.");
+                            "Node.js não encontrado. O runtime embarcado está ausente em runtime\\node.exe.");
 
                     string server = Path.Combine(appDir, "server.js");
                     if (!File.Exists(server))
