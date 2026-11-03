@@ -47,8 +47,16 @@ if (-not (Test-Path -LiteralPath $output -PathType Leaf)) {
 }
 
 $file = Get-Item -LiteralPath $output
-if ($file.Length -lt 10000) {
+if ($file.Length -lt 4096) {
     throw "Executável gerado parece incompleto: $($file.Length) bytes"
+}
+
+try {
+    [System.Reflection.AssemblyName]::GetAssemblyName($output) | Out-Null
+}
+catch {
+    Remove-Item -LiteralPath $output -Force -ErrorAction SilentlyContinue
+    throw "O arquivo gerado não é um assembly .NET válido: $($_.Exception.Message)"
 }
 
 $hash = (Get-FileHash -LiteralPath $output -Algorithm SHA256).Hash
