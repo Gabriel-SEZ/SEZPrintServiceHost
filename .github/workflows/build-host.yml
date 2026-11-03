@@ -1,0 +1,54 @@
+name: Build SEZPrintServiceHost.exe
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-host:
+    name: Compile Windows Service Host
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compile host executable
+        shell: pwsh
+        run: ./scripts/compile-host.ps1
+
+      - name: Verify executable and checksum
+        shell: pwsh
+        run: |
+          $exe = 'dist/SEZPrintServiceHost.exe'
+          $sum = 'dist/SEZPrintServiceHost.sha256'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Host não gerado: $exe" }
+          if (-not (Test-Path -LiteralPath $sum -PathType Leaf)) { throw "Checksum não gerado: $sum" }
+          $item = Get-Item -LiteralPath $exe
+          if ($item.Length -lt 10000) { throw "Executável parece incompleto: $($item.Length) bytes" }
+          Write-Host "Executável validado: $($item.FullName) ($($item.Length) bytes)"
+          Get-Content -LiteralPath $sum
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SEZPrintServiceHost-Windows-x64
+          path: |
+            dist/SEZPrintServiceHost.exe
+            dist/SEZPrintServiceHost.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish release asset for version tags
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          gh release create $tag dist/SEZPrintServiceHost.exe dist/SEZPrintServiceHost.sha256 --title "SEZ Print Service Host $tag" --notes "Compilação automatizada do serviço nativo Windows SEZ Print Service."
+          if ($LASTEXITCODE -ne 0) { throw "Não foi possível publicar a release $tag." }
