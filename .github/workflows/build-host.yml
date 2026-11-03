@@ -29,8 +29,9 @@ jobs:
           if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw "Host não gerado: $exe" }
           if (-not (Test-Path -LiteralPath $sum -PathType Leaf)) { throw "Checksum não gerado: $sum" }
           $item = Get-Item -LiteralPath $exe
-          if ($item.Length -lt 10000) { throw "Executável parece incompleto: $($item.Length) bytes" }
-          Write-Host "Executável validado: $($item.FullName) ($($item.Length) bytes)"
+          if ($item.Length -lt 4096) { throw "Executável parece incompleto: $($item.Length) bytes" }
+          [System.Reflection.AssemblyName]::GetAssemblyName((Resolve-Path -LiteralPath $exe).Path) | Out-Null
+          Write-Host "Assembly .NET válido: $($item.FullName) ($($item.Length) bytes)"
           Get-Content -LiteralPath $sum
 
       - name: Upload build artifact
